@@ -513,7 +513,7 @@ td.item-del { text-align: right; }
     <div class="recibo-header">
       <div class="recibo-meta" style="display:flex;flex-direction:column;align-items:flex-start;">
         <div style="font-size:10px;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:4px;">Cliente</div>
-        <div class="client-name" id="display-cliente" style="font-family:var(--display);font-size:18px;font-weight:800;color:#fff;word-break:break-word;max-width:200px;">—</div>
+        <div class="client-name" id="display-cliente" style="font-family:var(--display);font-size:18px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;">—</div>
         <div class="recibo-date" id="display-data" style="margin-top:4px;">—</div>
       </div>
       <div class="recibo-brand" style="text-align:right;">
@@ -615,7 +615,10 @@ document.getElementById('data').addEventListener('change', atualizarMeta);
 function atualizarMeta(){
   const c = document.getElementById('cliente').value.trim();
   const d = document.getElementById('data').value;
-  document.getElementById('display-cliente').textContent = c || '—';
+  const el = document.getElementById('display-cliente');
+  el.textContent = c || '—';
+  const len = c.length;
+  el.style.fontSize = len <= 14 ? '18px' : len <= 20 ? '15px' : len <= 28 ? '12px' : '11px';
   document.getElementById('display-data').textContent = fmtDate(d);
 }
 
@@ -767,3 +770,4 @@ document.getElementById('modal').addEventListener('click', function(e){
 </script>
 </body>
 </html>
+
