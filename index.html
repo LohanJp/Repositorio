@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Gerador de Orçamento</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+:root {
+  --bg:       #0d0d0d;
+  --surface:  #161616;
+  --card:     #1c1c1c;
+  --border:   #2a2a2a;
+  --green:    #4caf50;
+  --green-dim:#2e7d32;
+  --green-bg: rgba(76,175,80,0.08);
+  --green-glow:rgba(76,175,80,0.18);
+  --text:     #f0f0f0;
+  --muted:    #666;
+  --danger:   #ef5350;
+  --mono:     'DM Mono', monospace;
+  --display:  'Syne', sans-serif;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+/* subtle grid texture */
+body::before {
+  content:'';
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(76,175,80,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(76,175,80,0.03) 1px, transparent 1px);
+  background-size:40px 40px;
+  pointer-events:none;
+  z-index:0;
+}
+
+.app { max-width: 640px; margin: 0 auto; position: relative; z-index:1; }
+
+/* ── HEADER ── */
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 1.1rem 1.25rem;
+  background: var(--card);
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  margin-bottom: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+.app-header::after {
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;height:2px;
+  background: linear-gradient(90deg, transparent, var(--green), transparent);
+}
+.logo {
+  width: 50px; height: 50px;
+  border-radius: 12px;
+  background: var(--green-bg);
+  border: 1px solid rgba(76,175,80,0.3);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink:0;
+}
+.logo svg { width:26px; height:26px; }
+.brand h1 {
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.3px;
+  line-height:1.1;
+}
+.brand p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.brand-badge {
+  display:inline-flex;align-items:center;gap:4px;
+  background:var(--green-bg);
+  color:var(--green);
+  font-size:10px;
+  padding:2px 8px;
+  border-radius:999px;
+  border:1px solid rgba(76,175,80,0.2);
+  margin-top:5px;
+  font-family:var(--mono);
+}
+
+/* ── SECTION LABEL ── */
+.section-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+  padding-left: 2px;
+}
+
+/* ── FORM CARD ── */
+.card {
+  background: var(--card);
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.client-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 1rem;
+}
+
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label { font-size: 11px; color: var(--muted); font-weight: 500; letter-spacing:0.04em; }
+.field input, .field select {
+  background: #111;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--text);
+  font-family: var(--mono);
+  outline: none;
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.field input:focus, .field select:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-glow);
+}
+.field input::placeholder { color: #3a3a3a; }
+.field input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.4); }
+
+.divider { height: 1px; background: var(--border); margin: 1rem 0; }
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.full { grid-column: 1 / -1; }
+
+/* liquid preview */
+.liq-preview {
+  background: #111;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  grid-column: 1 / -1;
+}
+.liq-preview span:first-child { font-size: 11px; color: var(--muted); }
+.liq-preview .liq-val { font-size: 16px; font-weight: 500; color: var(--green); }
+
+/* btn add */
+.btn-add {
+  width: 100%;
+  padding: 14px;
+  margin-top: 4px;
+  background: var(--green);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: var(--mono);
+  cursor: pointer;
+  letter-spacing:0.03em;
+  transition: background 0.15s, transform 0.1s;
+  grid-column: 1 / -1;
+}
+.btn-add:hover { background: #43a047; }
+.btn-add:active { background: #388e3c; transform: scale(0.98); }
+
+/* ── RECIBO (parte que vira imagem) ── */
+#recibo {
+  background: var(--card);
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.recibo-header {
+  background: #111;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.recibo-brand h2 {
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 2px;
+}
+.recibo-brand p { font-size: 11px; color: var(--muted); }
+.recibo-meta { text-align: right; }
+.recibo-meta .client-name { font-size: 13px; color: var(--green); font-weight: 500; }
+.recibo-meta .recibo-date { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* empty */
+.empty-recibo {
+  padding: 2.5rem;
+  text-align: center;
+  color: #333;
+  font-size: 13px;
+}
+
+/* tabela */
+.table-wrap { overflow-x: auto; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 12px;
+}
+thead th {
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--border);
+  background: #131313;
+}
+tbody td {
+  padding: 10px 10px;
+  color: #ccc;
+  border-bottom: 1px solid #1f1f1f;
+  vertical-align: middle;
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: rgba(76,175,80,0.03); }
+td.item-desc { color: #fff; font-weight: 500; }
+td.item-total { color: var(--green); font-weight: 500; text-align: right; }
+td.item-del { text-align: right; }
+
+.col-desc { width:30%; }
+.col-bruto { width:14%; }
+.col-liq { width:14%; }
+.col-preco { width:14%; }
+.col-total { width:18%; }
+.col-del { width:10%; }
+
+.del-btn {
+  background: none;
+  border: none;
+  color: #444;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 5px;
+  font-size: 14px;
+  line-height: 1;
+  transition: all 0.1s;
+}
+.del-btn:hover { color: var(--danger); background: rgba(239,83,80,0.1); }
+
+/* total footer */
+.recibo-footer {
+  padding: 1rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #111;
+  border-top: 1px solid var(--border);
+}
+.recibo-footer .total-label { font-size: 12px; color: var(--muted); letter-spacing:0.05em; text-transform:uppercase; }
+.recibo-footer .total-amount {
+  font-family: var(--display);
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--green);
+  letter-spacing:-0.5px;
+}
+
+/* count badge */
+.count-badge { font-size: 13px; color: var(--green); font-weight: 500; }
+
+/* ── ACTION BUTTONS ── */
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.5rem; }
+
+.btn-img {
+  padding: 15px;
+  background: var(--green);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--mono);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.15s, transform 0.1s;
+  letter-spacing:0.02em;
+}
+.btn-img:hover { background: #43a047; }
+.btn-img:active { transform: scale(0.97); }
+
+.btn-reset {
+  padding: 15px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: var(--mono);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s;
+}
+.btn-reset:hover { background: #1e1e1e; color: var(--danger); border-color: rgba(239,83,80,0.3); }
+.btn-reset:active { transform: scale(0.97); }
+
+/* ── MODAL DE IMAGEM ── */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: var(--card);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  padding: 1.25rem;
+  max-width: 560px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.modal-title {
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.modal-sub { font-size: 12px; color: var(--muted); margin-bottom: 1rem; }
+.modal-img-wrap {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin-bottom: 1rem;
+}
+.modal-img-wrap img { width: 100%; display: block; }
+.modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btn-save {
+  padding: 13px;
+  background: var(--green);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: var(--mono);
+  cursor: pointer;
+  font-weight:500;
+  transition: background 0.15s;
+}
+.btn-save:hover { background: #43a047; }
+.btn-close-modal {
+  padding: 13px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: var(--mono);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-close-modal:hover { background: #222; color: #fff; }
+
+/* ── spinner ── */
+.spinner-overlay {
+  display: none;
+  position: fixed;
+  inset:0;
+  background:rgba(0,0,0,0.7);
+  z-index:999;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:12px;
+}
+.spinner-overlay.open { display:flex; }
+.spinner {
+  width:36px;height:36px;
+  border:3px solid #2a2a2a;
+  border-top-color:var(--green);
+  border-radius:50%;
+  animation:spin 0.7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner-label{font-size:13px;color:var(--muted);}
+
+/* RESPONSIVE */
+@media(max-width:480px){
+  .client-row{grid-template-columns:1fr}
+  .form-grid{grid-template-columns:1fr}
+  .full,.liq-preview,.btn-add{grid-column:auto}
+  .actions{grid-template-columns:1fr}
+  .col-liq{display:none}
+  .modal-actions{grid-template-columns:1fr}
+  thead th:nth-child(3),td:nth-child(3){display:none}
+  .col-desc{width:35%}.col-bruto{width:18%}.col-preco{width:17%}.col-total{width:22%}.col-del{width:8%}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- APP HEADER -->
+  <div class="app-header">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="1 4 1 10 7 10"/>
+        <polyline points="23 20 23 14 17 14"/>
+        <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/>
+      </svg>
+    </div>
+    <div class="brand">
+      <h1>Gerador de Orçamento</h1>
+      <p>(41) 99115-6599</p>
+
+    </div>
+  </div>
+
+  <!-- FORM CARD -->
+  <div class="card">
+    <div class="section-label">Dados do Atendimento</div>
+    <div class="client-row">
+      <div class="field">
+        <label>Nome do Cliente</label>
+        <input id="cliente" type="text" placeholder="Ex: João da Silva">
+      </div>
+      <div class="field">
+        <label>Data</label>
+        <input id="data" type="date">
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-label">Adicionar Item</div>
+
+    <div class="form-grid">
+      <div class="field full">
+        <label>Nome do Item</label>
+        <input id="nome" type="text" placeholder="Ex: Alumínio, Papelão...">
+      </div>
+      <div class="field">
+        <label>Peso Bruto (kg)</label>
+        <input id="bruto" type="number" placeholder="0.00" step="0.01" min="0" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label>Tara (kg)</label>
+        <input id="tara" type="number" placeholder="0.00" step="0.01" min="0" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label>Preço por kg (R$)</label>
+        <input id="preco" type="number" placeholder="0.00" step="0.01" min="0" inputmode="decimal">
+      </div>
+      <div class="liq-preview">
+        <span>Peso Líquido estimado</span>
+        <span class="liq-val" id="prev-liq">— kg</span>
+      </div>
+      <button class="btn-add full" onclick="addItem()">+ Adicionar Item</button>
+    </div>
+  </div>
+
+  <!-- RECIBO (capturado) -->
+  <div class="section-label" style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+    <span>Orçamento</span>
+    <span class="count-badge" id="count-badge"></span>
+  </div>
+
+  <div id="recibo">
+    <div class="recibo-header">
+      <div class="recibo-meta" style="display:flex;flex-direction:column;align-items:flex-start;">
+        <div style="font-size:10px;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:4px;">Cliente</div>
+        <div class="client-name" id="display-cliente" style="font-family:var(--display);font-size:18px;font-weight:800;color:#fff;word-break:break-word;max-width:200px;">—</div>
+        <div class="recibo-date" id="display-data" style="margin-top:4px;">—</div>
+      </div>
+      <div class="recibo-brand" style="text-align:right;">
+        <p>(41) 99115-6599</p>
+      </div>
+    </div>
+
+    <div id="empty-state" class="empty-recibo">Nenhum item adicionado.</div>
+
+    <div class="table-wrap" id="table-wrap" style="display:none">
+      <table>
+        <thead>
+          <tr>
+            <th class="col-desc">Item</th>
+            <th class="col-bruto">Bruto</th>
+            <th class="col-liq">Líquido</th>
+            <th class="col-preco">R$/kg</th>
+            <th class="col-total" style="text-align:right">Total</th>
+            <th class="col-del"></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="recibo-footer">
+      <div class="total-label">Total Geral</div>
+      <div class="total-amount" id="grand-total">R$ 0,00</div>
+    </div>
+  </div>
+
+  <!-- AÇÕES -->
+  <div class="actions">
+    <button class="btn-img" onclick="gerarImagem()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+      </svg>
+      Gerar para WhatsApp
+    </button>
+    <button class="btn-reset" onclick="zerarTudo()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/>
+      </svg>
+      Zerar Tudo
+    </button>
+  </div>
+
+</div>
+
+<!-- SPINNER -->
+<div class="spinner-overlay" id="spinner">
+  <div class="spinner"></div>
+  <div class="spinner-label">Gerando imagem...</div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <div class="modal-title">Imagem Pronta!</div>
+    <div class="modal-sub">Pressione e segure a imagem para salvar ou copiar — depois envie no WhatsApp.</div>
+    <div class="modal-img-wrap">
+      <img id="resultado-img" src="" alt="Orçamento">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-save" onclick="baixarImagem()">
+        ⬇ Salvar Imagem
+      </button>
+      <button class="btn-close-modal" onclick="fecharModal()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let items = [];
+let imgDataUrl = '';
+
+// Preenche data de hoje
+(function(){
+  const today = new Date();
+  const y = today.getFullYear();
+  const m = String(today.getMonth()+1).padStart(2,'0');
+  const d = String(today.getDate()).padStart(2,'0');
+  document.getElementById('data').value = `${y}-${m}-${d}`;
+  atualizarMeta();
+})();
+
+function fmt(v){ return v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtKg(v){ return fmt(v)+' kg'; }
+
+function fmtDate(val){
+  if(!val) return '—';
+  const [y,m,d] = val.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+document.getElementById('cliente').addEventListener('input', atualizarMeta);
+document.getElementById('data').addEventListener('change', atualizarMeta);
+
+function atualizarMeta(){
+  const c = document.getElementById('cliente').value.trim();
+  const d = document.getElementById('data').value;
+  document.getElementById('display-cliente').textContent = c || '—';
+  document.getElementById('display-data').textContent = fmtDate(d);
+}
+
+['bruto','tara'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updatePreview);
+});
+
+function updatePreview(){
+  const b = parseFloat(document.getElementById('bruto').value)||0;
+  const t = parseFloat(document.getElementById('tara').value)||0;
+  const liq = Math.max(0, b - t);
+  document.getElementById('prev-liq').textContent = (b>0||t>0) ? fmtKg(liq) : '— kg';
+}
+
+function addItem(){
+  const nome  = document.getElementById('nome').value.trim();
+  const bruto = parseFloat(document.getElementById('bruto').value)||0;
+  const tara  = parseFloat(document.getElementById('tara').value)||0;
+  const preco = parseFloat(document.getElementById('preco').value)||0;
+
+  if(!nome)      { shake('nome');  return; }
+  if(bruto <= 0) { shake('bruto'); return; }
+  if(preco <= 0) { shake('preco'); return; }
+
+  const liq   = Math.max(0, bruto - tara);
+  const total = liq * preco;
+  const id    = Date.now();
+
+  items.push({id, nome, bruto, tara, liq, preco, total});
+  renderItems();
+
+  ['nome','bruto','tara','preco'].forEach(i => document.getElementById(i).value='');
+  document.getElementById('prev-liq').textContent = '— kg';
+  document.getElementById('nome').focus();
+}
+
+function shake(id){
+  const el = document.getElementById(id);
+  el.style.borderColor = '#ef5350';
+  el.style.boxShadow = '0 0 0 3px rgba(239,83,80,0.2)';
+  setTimeout(()=>{ el.style.borderColor=''; el.style.boxShadow=''; }, 800);
+  el.focus();
+}
+
+function removeItem(id){
+  items = items.filter(i => i.id !== id);
+  renderItems();
+}
+
+function renderItems(){
+  const tbody = document.getElementById('tbody');
+  const wrap  = document.getElementById('table-wrap');
+  const empty = document.getElementById('empty-state');
+  const badge = document.getElementById('count-badge');
+
+  tbody.innerHTML = '';
+
+  if(items.length === 0){
+    wrap.style.display  = 'none';
+    empty.style.display = 'block';
+    badge.textContent   = '';
+  } else {
+    empty.style.display = 'none';
+    wrap.style.display  = 'block';
+    badge.textContent   = items.length + ' item' + (items.length > 1 ? 's' : '');
+
+    items.forEach(item => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="item-desc">${item.nome}</td>
+        <td>${fmtKg(item.bruto)}</td>
+        <td>${fmtKg(item.liq)}</td>
+        <td>R$ ${fmt(item.preco)}</td>
+        <td class="item-total">R$ ${fmt(item.total)}</td>
+        <td class="item-del"><button class="del-btn" onclick="removeItem(${item.id})">✕</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  const grand = items.reduce((s,i) => s + i.total, 0);
+  document.getElementById('grand-total').textContent = 'R$ ' + fmt(grand);
+}
+
+// Esconde botões de delete antes de capturar
+function gerarImagem(){
+  if(items.length === 0){ alert('Adicione pelo menos um item ao orçamento.'); return; }
+
+  // oculta botões de delete
+  document.querySelectorAll('.del-btn').forEach(b => b.style.visibility='hidden');
+
+  document.getElementById('spinner').classList.add('open');
+
+  setTimeout(() => {
+    html2canvas(document.getElementById('recibo'), {
+      backgroundColor: '#1c1c1c',
+      scale: 2,
+      useCORS: true,
+      logging: false
+    }).then(canvas => {
+      imgDataUrl = canvas.toDataURL('image/png');
+      document.getElementById('resultado-img').src = imgDataUrl;
+      document.getElementById('spinner').classList.remove('open');
+      document.getElementById('modal').classList.add('open');
+    }).catch(err => {
+      document.getElementById('spinner').classList.remove('open');
+      alert('Erro ao gerar imagem. Tente novamente.');
+      console.error(err);
+    }).finally(() => {
+      document.querySelectorAll('.del-btn').forEach(b => b.style.visibility='');
+    });
+  }, 100);
+}
+
+function baixarImagem(){
+  if(!imgDataUrl) return;
+  const a = document.createElement('a');
+  a.href = imgDataUrl;
+  const cliente = document.getElementById('cliente').value.trim().replace(/\s+/g,'_') || 'orcamento';
+  a.download = `orcamento_${cliente}.png`;
+  a.click();
+}
+
+function fecharModal(){
+  document.getElementById('modal').classList.remove('open');
+}
+
+function zerarTudo(){
+  if(items.length === 0 && !document.getElementById('cliente').value){
+    return;
+  }
+  if(!confirm('Zerar tudo e começar um novo atendimento?')) return;
+  items = [];
+  renderItems();
+  document.getElementById('cliente').value = '';
+  ['nome','bruto','tara','preco'].forEach(i => document.getElementById(i).value='');
+  document.getElementById('prev-liq').textContent = '— kg';
+
+  const today = new Date();
+  const y=today.getFullYear(), m=String(today.getMonth()+1).padStart(2,'0'), d=String(today.getDate()).padStart(2,'0');
+  document.getElementById('data').value = `${y}-${m}-${d}`;
+  atualizarMeta();
+}
+
+// fechar modal clicando fora
+document.getElementById('modal').addEventListener('click', function(e){
+  if(e.target === this) fecharModal();
+});
+</script>
+</body>
+</html>
