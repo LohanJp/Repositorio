@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Gerador de Orçamento</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Condensed:wght@700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root {
@@ -17,8 +17,8 @@
   --text:      #f0f0f0;
   --muted:     #666;
   --danger:    #ef5350;
-  --mono:      'DM Mono', monospace;
-  --display:   'Syne', sans-serif;
+  --mono:      'Inter', sans-serif;
+  --display:   'Roboto Condensed', sans-serif;
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
@@ -200,11 +200,12 @@ td.item-desc{color:#fff;font-weight:500;word-break:break-word;}
 td.item-total{color:var(--green);font-weight:500;text-align:right;}
 td.item-del{text-align:right;}
 
-.col-desc{width:32%;}
-.col-bruto{width:15%;}
-.col-liq{width:13%;}
-.col-preco{width:14%;}
-.col-total{width:18%;}
+.col-desc{width:28%;}
+.col-bruto{width:13%;}
+.col-tara{width:11%;}
+.col-liq{width:12%;}
+.col-preco{width:12%;}
+.col-total{width:16%;}
 .col-del{width:8%;}
 
 .del-btn {
@@ -315,9 +316,10 @@ td.item-del{text-align:right;}
   .client-row{grid-template-columns:1fr;}
   .form-grid{grid-template-columns:1fr;}
   .full,.liq-preview,.btn-add{grid-column:auto;}
-  .col-liq,.col-preco{display:none;}
+  .col-liq,.col-preco,.col-tara{display:none;}
   thead th:nth-child(3),td:nth-child(3),
-  thead th:nth-child(4),td:nth-child(4){display:none;}
+  thead th:nth-child(4),td:nth-child(4),
+  thead th:nth-child(5),td:nth-child(5){display:none;}
   .col-desc{width:42%;}.col-bruto{width:22%;}.col-total{width:26%;}.col-del{width:10%;}
   .actions{grid-template-columns:1fr;}
   .modal-actions{grid-template-columns:1fr;}
@@ -413,6 +415,7 @@ td.item-del{text-align:right;}
           <tr>
             <th class="col-desc">Item</th>
             <th class="col-bruto">Bruto</th>
+            <th class="col-tara">Tara</th>
             <th class="col-liq">Líquido</th>
             <th class="col-preco">R$/kg</th>
             <th class="col-total" style="text-align:right">Total</th>
@@ -574,6 +577,7 @@ function renderItems(){
       tr.innerHTML = `
         <td class="item-desc">${item.nome}</td>
         <td>${fmtKg(item.bruto)}</td>
+        <td>${item.tara > 0 ? fmtKg(item.tara) : '—'}</td>
         <td>${fmtKg(item.liq)}</td>
         <td>R$ ${fmt(item.preco)}</td>
         <td class="item-total">R$ ${fmt(item.total)}</td>
